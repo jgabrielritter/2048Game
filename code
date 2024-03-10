@@ -1,0 +1,299 @@
+import pygame
+import random
+import copy
+
+# Constants
+GRID_SIZE = 4
+TOOLBAR_HEIGHT = 60
+SCORE_FILE = "scores.txt"
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
+TILE_COLORS = {
+    0: GRAY,
+    2: (255, 255, 128),
+    4: (255, 255, 0),
+    8: (255, 200, 0),
+    16: (255, 150, 0),
+    32: (255, 100, 0),
+    64: (255, 50, 0),
+    128: (255, 0, 0),
+    256: (200, 0, 0),
+    512: (150, 0, 0),
+    1024: (100, 0, 0),
+    2048: (50, 0, 0)
+}
+
+# Fonts
+FONT = None
+SMALL_FONT = None
+
+# Initialize Pygame
+pygame.init()
+screen = pygame.display.set_mode((0, 0), pygame.RESIZABLE)  # Allow window to be resizable
+pygame.display.set_caption("2048 Game")
+
+def initialize_fonts():
+    global FONT, SMALL_FONT
+    # Dynamically set font sizes based on window dimensions
+    font_size = min(screen.get_width() // 16, screen.get_height() // 24)
+    small_font_size = min(screen.get_width() // 32, screen.get_height() // 48)
+    FONT = pygame.font.Font(None, font_size)
+    SMALL_FONT = pygame.font.Font(None, small_font_size)
+
+# Helper functions
+
+def resize_elements():
+    global TOOLBAR_HEIGHT, TILE_SIZE
+    # Adjust sizes of elements based on window dimensions
+    TOOLBAR_HEIGHT = screen.get_height() // 12
+    TILE_SIZE = min(screen.get_width(), screen.get_height() - TOOLBAR_HEIGHT) // GRID_SIZE
+
+def draw_tile(x, y, value):
+    pygame.draw.rect(screen, TILE_COLORS[value], (x, y, TILE_SIZE, TILE_SIZE))
+    if value != 0:
+        text_surface = FONT.render(str(value), True, BLACK)
+        text_rect = text_surface.get_rect(center=(x + TILE_SIZE / 2, y + TILE_SIZE / 2))
+        screen.blit(text_surface, text_rect)
+
+def draw_grid(grid):
+    for y in range(GRID_SIZE):
+        for x in range(GRID_SIZE):
+            draw_tile(x * TILE_SIZE, y * TILE_SIZE + TOOLBAR_HEIGHT, grid[y][x])
+
+def draw_toolbar(user_id, score, high_score):
+    pygame.draw.rect(screen, GRAY, (0, 0, screen.get_width(), TOOLBAR_HEIGHT))
+    
+    # Reset button
+    reset_button_width = screen.get_width() // 10
+    pygame.draw.rect(screen, WHITE, (10, 10, reset_button_width, TOOLBAR_HEIGHT - 20))
+    reset_text = SMALL_FONT.render("Reset", True, BLACK)
+    reset_text_rect = reset_text.get_rect(center=(10 + reset_button_width // 2, TOOLBAR_HEIGHT // 2))
+    screen.blit(reset_text, reset_text_rect)
+
+    # High score counter
+    high_score_text = FONT.render("High Score: {}".format(high_score), True, BLACK)
+    screen.blit(high_score_text, (screen.get_width() // 2 - high_score_text.get_width() // 2, 20))
+
+    # Score counter
+    score_text = SMALL_FONT.render("Score: {}".format(score), True, BLACK)
+    screen.blit(score_text, (screen.get_width() - score_text.get_width() - 10, 20))
+
+    # User ID
+    user_id_text = SMALL_FONT.render("User ID: {}".format(user_id), True, BLACK)
+    screen.blit(user_id_text, (20 + reset_button_width, 20))
+
+def generate_tile(grid):
+    while True:
+        x, y = random.randint(0, GRID_SIZE-1), random.randint(0, GRID_SIZE-1)
+        if grid[y][x] == 0:
+            grid[y][x] = 2 if random.random() < 0.9 else 4
+            return
+
+def move_tiles(grid, direction):
+    new_grid = copy.deepcopy(grid)
+    if direction == pygame.K_UP:
+        for x in range(GRID_SIZE):
+            merge = False
+            for y in range(1, GRID_SIZE):
+                if new_grid[y][x] != 0:
+                    for y2 in range(y-1, -1, -1):
+                        if new_grid[y2][x] == 0:
+                            new_grid[y2][x] = new_grid[y2+1][x]
+                            new_grid[y2+1][x] = 0
+                            merge = True
+                        elif new_grid[y2][x] == new_grid[y2+1][x] and not merge:
+                            new_grid[y2][x] *= 2
+                            new_grid[y2+1][x] = 0
+                            merge = True
+                        else:
+                            break
+    elif direction == pygame.K_DOWN:
+        for x in range(GRID_SIZE):
+            merge = False
+            for y in range(GRID_SIZE-2, -1, -1):
+                if new_grid[y][x] != 0:
+                    for y2 in range(y+1, GRID_SIZE):
+                        if new_grid[y2][x] == 0:
+                            new_grid[y2][x] = new_grid[y2-1][x]
+                            new_grid[y2-1][x] = 0
+                            merge = True
+                        elif new_grid[y2][x] == new_grid[y2-1][x] and not merge:
+                            new_grid[y2][x] *= 2
+                            new_grid[y2-1][x] = 0
+                            merge = True
+                        else:
+                            break
+    elif direction == pygame.K_LEFT:
+        for y in range(GRID_SIZE):
+            merge = False
+            for x in range(1, GRID_SIZE):
+                if new_grid[y][x] != 0:
+                    for x2 in range(x-1, -1, -1):
+                        if new_grid[y][x2] == 0:
+                            new_grid[y][x2] = new_grid[y][x2+1]
+                            new_grid[y][x2+1] = 0
+                            merge = True
+                        elif new_grid[y][x2] == new_grid[y][x2+1] and not merge:
+                            new_grid[y][x2] *= 2
+                            new_grid[y][x2+1] = 0
+                            merge = True
+                        else:
+                            break
+    elif direction == pygame.K_RIGHT:
+        for y in range(GRID_SIZE):
+            merge = False
+            for x in range(GRID_SIZE-2, -1, -1):
+                if new_grid[y][x] != 0:
+                    for x2 in range(x+1, GRID_SIZE):
+                        if new_grid[y][x2] == 0:
+                            new_grid[y][x2] = new_grid[y][x2-1]
+                            new_grid[y][x2-1] = 0
+                            merge = True
+                        elif new_grid[y][x2] == new_grid[y][x2-1] and not merge:
+                            new_grid[y][x2] *= 2
+                            new_grid[y][x2-1] = 0
+                            merge = True
+                        else:
+                            break
+    return new_grid
+
+def is_game_over(grid):
+    for y in range(GRID_SIZE):
+        for x in range(GRID_SIZE):
+            if grid[y][x] == 0:
+                return False
+            if x < GRID_SIZE - 1 and grid[y][x] == grid[y][x+1]:
+                return False
+            if y < GRID_SIZE - 1 and grid[y][x] == grid[y+1][x]:
+                return False
+    return True
+
+def get_user_id():
+    user_id = ""
+    input_active = True
+    while input_active:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    input_active = False
+                elif event.key == pygame.K_BACKSPACE:
+                    user_id = user_id[:-1]
+                else:
+                    user_id += event.unicode
+        screen.fill(WHITE)
+        user_id_text = FONT.render("Enter User ID: " + user_id, True, BLACK)
+        screen.blit(user_id_text, (10, screen.get_height() // 2 - 15))
+        pygame.display.flip()
+    return user_id
+
+def save_score(user_id, score):
+    with open(SCORE_FILE, "a") as file:
+        file.write(f"{user_id}: {score}\n")
+
+def load_high_score():
+    high_score = 0
+    try:
+        with open(SCORE_FILE, "r") as file:
+            lines = file.readlines()
+            for line in lines:
+                parts = line.split(": ")
+                if len(parts) == 2:
+                    score = int(parts[1])
+                    if score > high_score:
+                        high_score = score
+    except FileNotFoundError:
+        pass
+    return high_score
+
+def reset_scores():
+    open(SCORE_FILE, "w").close()
+
+def draw_confirmation_box():
+    confirmation_text = FONT.render("Are you sure you want to reset?", True, BLACK)
+    confirmation_rect = confirmation_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+    pygame.draw.rect(screen, WHITE, (confirmation_rect.x - 10, confirmation_rect.y - 10, confirmation_rect.width + 20, confirmation_rect.height + 20))
+    screen.blit(confirmation_text, confirmation_rect)
+    yes_button = SMALL_FONT.render("Yes", True, BLACK)
+    yes_button_rect = yes_button.get_rect(center=(screen.get_width() // 2 - 50, screen.get_height() // 2 + 30))
+    pygame.draw.rect(screen, GRAY, (yes_button_rect.x - 10, yes_button_rect.y - 5, yes_button_rect.width + 20, yes_button_rect.height + 10))
+    screen.blit(yes_button, yes_button_rect)
+    no_button = SMALL_FONT.render("No", True, BLACK)
+    no_button_rect = no_button.get_rect(center=(screen.get_width() // 2 + 50, screen.get_height() // 2 + 30))
+    pygame.draw.rect(screen, GRAY, (no_button_rect.x - 10, no_button_rect.y - 5, no_button_rect.width + 20, no_button_rect.height + 10))
+    screen.blit(no_button, no_button_rect)
+    return yes_button_rect, no_button_rect
+
+# Initialize game grid
+grid = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+generate_tile(grid)
+generate_tile(grid)
+
+# Initialize user ID
+initialize_fonts()
+resize_elements()
+user_id = get_user_id()
+
+# Load high score
+high_score = load_high_score()
+
+# Main game loop
+running = True
+score = 0
+reset_pressed = False  # Flag to check if reset button was pressed
+confirmation_displayed = False  # Flag to check if confirmation message was displayed
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if not is_game_over(grid):
+                if event.key == pygame.K_UP or event.key == pygame.K_DOWN or event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
+                    grid = move_tiles(grid, event.key)
+                    generate_tile(grid)
+                    # Increment score after each move
+                    score += 1
+            else:
+                print("Game Over!")
+                score = max([max(row) for row in grid])
+                save_score(user_id, score)
+                if score > high_score:
+                    high_score = score
+                print(f"Score: {score}")
+            if event.key == pygame.K_r:
+                # Show confirmation message
+                confirmation_displayed = True
+        elif event.type == pygame.VIDEORESIZE:
+            screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+            initialize_fonts()
+            resize_elements()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if confirmation_displayed:
+                # Check if Yes or No button was clicked
+                yes_button_rect, no_button_rect = draw_confirmation_box()
+                if yes_button_rect.collidepoint(event.pos):
+                    grid = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+                    generate_tile(grid)
+                    generate_tile(grid)
+                    score = 0
+                    confirmation_displayed = False
+                elif no_button_rect.collidepoint(event.pos):
+                    confirmation_displayed = False
+            else:
+                # Check if Reset button was clicked
+                reset_button_rect = pygame.Rect(10, 10, screen.get_width() // 10, TOOLBAR_HEIGHT - 20)
+                if reset_button_rect.collidepoint(event.pos):
+                    confirmation_displayed = True
+    screen.fill(WHITE)
+    draw_toolbar(user_id, score, high_score)
+    draw_grid(grid)
+    if confirmation_displayed:
+        draw_confirmation_box()
+    pygame.display.flip()
+
+pygame.quit()
