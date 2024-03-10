@@ -3,7 +3,7 @@
 Overview
 This is a Python implementation of the classic 2048 game using the Pygame library. The game allows players to slide tiles on a grid and merge tiles with the same numbers. The goal is to reach the 2048 tile. The game features a graphical interface with keyboard controls and includes additional elements such as a top toolbar, user ID input, score tracking, high score counter, and a reset button.
 
-#Features
+# Features
 Graphical interface using Pygame.
 Responsive layout that adjusts to window size changes.
 User-friendly toolbar with essential controls:
@@ -11,12 +11,12 @@ Reset button to restart the game.
 Display of user ID, current score, and high score.
 Confirmation message when resetting the game to prevent accidental resets.
 High score tracking stored in a text file.
-#How to Run
+# How to Run
 Ensure you have Python installed on your system.
 Install the Pygame library by running pip install pygame.
 Download or clone this repository.
 Run the 2048_game.py file using Python.
-#Code Functions
+# Code Functions
 initialize_fonts()
 Initializes the fonts used in the game interface based on window dimensions.
 
@@ -56,6 +56,6 @@ Clears the score file to reset all recorded scores.
 draw_confirmation_box()
 Draws a confirmation message box when the reset button is pressed, allowing the user to confirm or cancel the reset action.
 
-#Build Explanation
+# Build Explanation
 The game is built using the Pygame library, which provides a simple yet powerful framework for creating 2D games in Python. The main game loop handles user input, updates the game state, and renders the game graphics. Additional functions are implemented to manage game mechanics, display elements, and handle user interactions.
 
